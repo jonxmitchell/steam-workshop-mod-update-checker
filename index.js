@@ -3,6 +3,8 @@ const apikey = "22F47F57F95F4B1A48C8C757CF66309A";
 const sqlite3 = require("sqlite3").verbose();
 Steam.key = apikey;
 const config = require("./config.json");
+const SteamWorkshopScraper = require("steam-workshop-scraper");
+var sws = new SteamWorkshopScraper();
 
 Steam.ready(async function (err) {
   let db = new sqlite3.Database("./database.db", (err) => {
@@ -10,7 +12,7 @@ Steam.ready(async function (err) {
       console.error(err.message);
     }
   });
-  await db.run(`CREATE TABLE IF NOT EXISTS mods (mod_id INTEGER, last_updated INTEGER)`);
+  await db.run(`CREATE TABLE IF NOT EXISTS mods (mod_id INTEGER, last_updated INTEGER, latest_patchnotes TEXT)`);
 
   async function modUpdateCheck() {
     if (err) throw err;
@@ -21,12 +23,16 @@ Steam.ready(async function (err) {
     modIDs.forEach((modID) => {
       steam.getPublishedFileDetails({ itemcount: "1", "publishedfileids[0]": `${modID}` }, async function (err, data) {
         if (err) throw err;
-        console.log(data);
+        // console.log(data);
         const getTimeUpdated = data.publishedfiledetails[0].time_updated;
         const getModName = data.publishedfiledetails[0].title;
         const getModID = data.publishedfiledetails[0].publishedfileid;
         const getModThumbnail = data.publishedfiledetails[0].preview_url;
         const getModURL = `https://steamcommunity.com/sharedfiles/filedetails/?id=${getModID}`;
+        const getPatchnotes = sws.GetChangeLog(modID).then(async function (data) {
+          const patchnotes = data.data[0].text;
+          await db.run(`UPDATE mods SET latest_patchnotes = ? WHERE mod_id = ?`, [patchnotes, getModID]);
+        });
 
         let db = new sqlite3.Database("./database.db", (err) => {
           if (err) {
@@ -44,7 +50,7 @@ Steam.ready(async function (err) {
         });
 
         if (!existingMod) {
-          await db.run(`INSERT INTO mods (mod_id, last_updated) VALUES (?, ?)`, [getModID, getTimeUpdated]);
+          await db.run(`INSERT INTO mods (mod_id, last_updated, latest_patchnotes) VALUES (?, ?, ?)`, [getModID, getTimeUpdated, getPatchnotes]);
           console.log(`added ${getModName} to database`);
         }
 
@@ -52,6 +58,11 @@ Steam.ready(async function (err) {
           if (getTimeUpdated > existingMod.last_updated) {
             // console.log("Mod Title: " + getModName, "\n", "Mod ID: " + getModID, "\n", "Last Updated: " + existingMod.last_updated, "\n", "New Updated: " + getTimeUpdated);
             await db.run(`UPDATE mods SET last_updated = ? WHERE mod_id = ?`, [getTimeUpdated, getModID]);
+
+            sws.GetChangeLog(modID).then(async function (data) {
+              const patchnotes = data.data[0].text;
+              await db.run(`UPDATE mods SET latest_patchnotes = ? WHERE mod_id = ?`, [patchnotes, getModID]);
+            });
 
             const existingModRecheck = await new Promise((resolve, reject) => {
               db.get(`SELECT * FROM mods WHERE mod_id = ?`, [getModID], (err, row) => {
@@ -61,6 +72,8 @@ Steam.ready(async function (err) {
                 resolve(row);
               });
             });
+
+            const latestPatchNotes = existingModRecheck.latest_patchnotes;
 
             const lastUpdateTimestamp = existingMod.last_updated;
             const lastUpdateDate = new Date(lastUpdateTimestamp * 1000);
@@ -72,7 +85,7 @@ Steam.ready(async function (err) {
             const newUpdatedOptions = { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", second: "numeric" };
             const newUpdateFormattedDate = newUpdatedDate.toLocaleDateString("en-GB", newUpdatedOptions);
 
-            console.log(`**MOD UPDATE DETECTED**\n${getModName} has been updated\nMod ID: ${getModID}\nLast Updated Date: ${lastUpdateFormattedDate}\nNew Updated Date: ${newUpdateFormattedDate}\nThumbnail: ${getModThumbnail}\nMod URL: ${getModURL} `);
+            console.log(`**MOD UPDATE DETECTED**\n${getModName} has been updated\nMod ID: ${getModID}\nLast Updated Date: ${lastUpdateFormattedDate}\nNew Updated Date: ${newUpdateFormattedDate}\nThumbnail: ${getModThumbnail}\nMod URL: ${getModURL}\nPatchnotes: ${latestPatchNotes}`);
             await db.close;
           } else {
             console.log("no updates");
@@ -84,5 +97,5 @@ Steam.ready(async function (err) {
       });
     });
   }
-  setInterval(modUpdateCheck, 2000);
+  setInterval(modUpdateCheck, 5000);
 });

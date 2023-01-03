@@ -12,6 +12,7 @@
   "dependencies": {
     "sqlite3": "^5.1.4",
     "steam-client": "^2.5.8",
-    "steam-webapi": "^0.6.5"
+    "steam-webapi": "^0.6.5",
+    "steam-workshop-scraper": "^0.0.5"
   }
 }
