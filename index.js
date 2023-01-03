@@ -1,12 +1,15 @@
 const Steam = require("steam-webapi");
-const apikey = "22F47F57F95F4B1A48C8C757CF66309A";
+const config = require("./config.json");
+const apikey = config.steam_api_key;
+const interval = config.intervals_in_milliseconds;
 const sqlite3 = require("sqlite3").verbose();
 Steam.key = apikey;
-const config = require("./config.json");
 const SteamWorkshopScraper = require("steam-workshop-scraper");
 var sws = new SteamWorkshopScraper();
 
 Steam.ready(async function (err) {
+  console.log(`Connected to Steam - Interval for checks is every ${interval} milliseconds`);
+
   let db = new sqlite3.Database("./database.db", (err) => {
     if (err) {
       console.error(err.message);
@@ -51,7 +54,7 @@ Steam.ready(async function (err) {
 
         if (!existingMod) {
           await db.run(`INSERT INTO mods (mod_id, last_updated, latest_patchnotes) VALUES (?, ?, ?)`, [getModID, getTimeUpdated, getPatchnotes]);
-          console.log(`added ${getModName} to database`);
+          console.log("\x1b[35m", new Date().toLocaleString() + ` - Added ${getModName} to database`);
         }
 
         try {
@@ -85,10 +88,10 @@ Steam.ready(async function (err) {
             const newUpdatedOptions = { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "numeric", second: "numeric" };
             const newUpdateFormattedDate = newUpdatedDate.toLocaleDateString("en-GB", newUpdatedOptions);
 
-            console.log(`**MOD UPDATE DETECTED**\n${getModName} has been updated\nMod ID: ${getModID}\nLast Updated Date: ${lastUpdateFormattedDate}\nNew Updated Date: ${newUpdateFormattedDate}\nThumbnail: ${getModThumbnail}\nMod URL: ${getModURL}\nPatchnotes: ${latestPatchNotes}`);
+            console.log("\x1b[32m", `**MOD UPDATE DETECTED**\n${getModName} has been updated\nMod ID: ${getModID}\nLast Updated Date: ${lastUpdateFormattedDate}\nNew Updated Date: ${newUpdateFormattedDate}\nThumbnail: ${getModThumbnail}\nMod URL: ${getModURL}\nPatchnotes: ${latestPatchNotes}`);
             await db.close;
           } else {
-            console.log("no updates");
+            console.log("\x1b[36m%s\x1b[0m", new Date().toLocaleString() + ` - No updates for ${getModName}`);
             await db.close;
           }
         } catch (err) {
@@ -97,5 +100,5 @@ Steam.ready(async function (err) {
       });
     });
   }
-  setInterval(modUpdateCheck, 5000);
+  setInterval(modUpdateCheck, interval);
 });
