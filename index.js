@@ -50,6 +50,7 @@ Steam.ready(async function (err) {
           if (getTimeUpdated > existingMod.last_updated) {
             console.log("Mod Title: " + getModName, "\n", "Mod ID: " + getModID, "\n", "Last Updated: " + existingMod.last_updated, "\n", "New Updated: " + getTimeUpdated);
             await db.run(`UPDATE mods SET last_updated = ? WHERE mod_id = ?`, [getTimeUpdated, getModID]);
+
             const existingModRecheck = await new Promise((resolve, reject) => {
               db.get(`SELECT * FROM mods WHERE mod_id = ?`, [getModID], (err, row) => {
                 if (err) {
@@ -58,6 +59,7 @@ Steam.ready(async function (err) {
                 resolve(row);
               });
             });
+
             console.log(`**MOD UPDATE DETECTED**\n${getModName} has been updated\n New Updated: ${existingModRecheck.last_updated}\n `);
             await db.close;
           } else {
@@ -65,7 +67,7 @@ Steam.ready(async function (err) {
             await db.close;
           }
         } catch (err) {
-          //smth
+          return;
         }
       });
     });
