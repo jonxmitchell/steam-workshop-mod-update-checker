@@ -26,7 +26,6 @@ Steam.ready(async function (err) {
     modIDs.forEach((modID) => {
       steam.getPublishedFileDetails({ itemcount: "1", "publishedfileids[0]": `${modID}` }, async function (err, data) {
         if (err) throw err;
-        // console.log(data);
         const getTimeUpdated = data.publishedfiledetails[0].time_updated;
         const getModName = data.publishedfiledetails[0].title;
         const getModID = data.publishedfiledetails[0].publishedfileid;
@@ -59,7 +58,6 @@ Steam.ready(async function (err) {
 
         try {
           if (getTimeUpdated > existingMod.last_updated) {
-            // console.log("Mod Title: " + getModName, "\n", "Mod ID: " + getModID, "\n", "Last Updated: " + existingMod.last_updated, "\n", "New Updated: " + getTimeUpdated);
             await db.run(`UPDATE mods SET last_updated = ? WHERE mod_id = ?`, [getTimeUpdated, getModID]);
 
             sws.GetChangeLog(modID).then(async function (data) {
