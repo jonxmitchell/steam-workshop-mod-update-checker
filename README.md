@@ -8,6 +8,13 @@ A tool to check for updates to Steam Workshop mods, ensuring your favorite mods 
 - ⚙️ **Easy Configuration**: Simple configuration file to set up your mod list and check frequency.
 - 🔔 **Notifications**: Get notified when there are updates available for your mods.
 
+## 📦 Packages
+
+- [`sqlite3`](https://www.npmjs.com/package/sqlite3): For database management.
+- [`steam-client`](https://www.npmjs.com/package/steam-client): For interacting with the Steam network.
+- [`steam-webapi`](https://www.npmjs.com/package/steam-webapi): For making HTTP requests to the Steam Web API.
+- [`steam-workshop-scraper`](https://www.npmjs.com/package/steam-workshop-scraper): For scraping data from the Steam Workshop.
+
 ## 📥 Installation
 
 1. Clone the repository:
